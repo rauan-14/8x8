@@ -37,6 +37,7 @@ class MarkView: UIView {
 
     }
 
+    
     override func draw(_ rect: CGRect) {
         if let path = getPath() {
             UIColor.white.setStroke()
@@ -56,6 +57,12 @@ class MarkView: UIView {
             animation.duration = 1.0
             shapeLayer.add(animation, forKey: "markAnimation")
             self.shapeLayer = shapeLayer
+        }
+        else {
+            if shapeLayer != nil {
+                shapeLayer!.removeFromSuperlayer()
+                shapeLayer = nil
+            }
         }
     }
 }

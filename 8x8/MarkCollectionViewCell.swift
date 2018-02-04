@@ -15,7 +15,11 @@ class MarkCollectionViewCell: UICollectionViewCell {
             markView.mark = self.mark
         }
     }
-    @IBOutlet weak var markView: MarkView!
+    @IBOutlet weak var markView: MarkView! {
+        didSet {
+            markView.setNeedsDisplay()
+        }
+    }
 }
 
 enum Mark {

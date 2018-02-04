@@ -24,7 +24,7 @@ class MainViewController: UIViewController, UICollectionViewDataSource, UICollec
     @IBOutlet weak var restartButton: UIButton!
     @IBOutlet weak var restartButtonHeightContraint: NSLayoutConstraint!
     
-    private var gameInfo = GameInfo(matchNumber: 1, matchesOWon: 0, matchesXWon: 0, gameStatus: .xTurn) {
+    private var gameInfo = GameInfo() {
         didSet {
             if statusLabel != nil {
                 statusLabel.text = gameInfo.gameStatus.rawValue
@@ -41,10 +41,11 @@ class MainViewController: UIViewController, UICollectionViewDataSource, UICollec
         }
     }
     
-    
-    private func updateGameInfo() {
-        // Game Checker
+    @IBAction func restart(_ sender: UIButton) {
+        gameInfo.reset()
+        collectionView.reloadData()
     }
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -68,6 +69,8 @@ class MainViewController: UIViewController, UICollectionViewDataSource, UICollec
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Constants.cellIdentifier, for: indexPath) as! MarkCollectionViewCell
         cell.changeCornerRadius(to: 3)
+        cell.mark = gameInfo.markedCells[indexPath.section][indexPath.row]
+        cell.wasMarked = false
         return cell
     }
     
@@ -79,12 +82,14 @@ class MainViewController: UIViewController, UICollectionViewDataSource, UICollec
         if let cell = collectionView.cellForItem(at: indexPath) as? MarkCollectionViewCell, cell.wasMarked == false {
             if gameInfo.gameStatus == .oTurn {
                 cell.mark = .o
+                gameInfo.markedCells[indexPath.section][indexPath.row] = .o
             }
             else if gameInfo.gameStatus == .xTurn {
                 cell.mark = .x
+                gameInfo.markedCells[indexPath.section][indexPath.row] = .x
             }
             cell.wasMarked = true
-            gameInfo.changeToNextTurn()
+            gameInfo.updateGameInfo(afterMarkingAt: indexPath)
         }
     }
     
@@ -111,13 +116,148 @@ struct GameInfo {
     var matchesOWon: Int
     var matchesXWon: Int
     var gameStatus: GameStatus
-    mutating func changeToNextTurn() {
+    var markedCells: [[Mark]]
+    private var numMarks = 0
+    
+    init() {
+        markedCells = Array<[Mark]>(repeating: Array<Mark>(repeating: Mark.unmarked, count: 8), count: 8)
+        matchesOWon = 0
+        matchesXWon = 0
+        matchNumber = 1
+        gameStatus = .xTurn
+    }
+    
+    private mutating func changeToNextTurn() {
         if gameStatus == .xTurn {
            gameStatus = .oTurn
         }
         else if gameStatus == .oTurn {
             gameStatus = .xTurn
         }
+    }
+    
+    private mutating func getWinner() {
+        if gameStatus == .oTurn {
+            gameStatus = .oWon
+        }
+        else if gameStatus == .xTurn {
+            gameStatus = .xWon
+        }
+    }
+    
+    mutating func updateGameInfo(afterMarkingAt indexPath: IndexPath) {
+        numMarks += 1
+        if numMarks == 64 {
+            gameStatus = .draw
+            return
+        }
+        let section = indexPath.section
+        let row =  indexPath.row
+        let mark = markedCells[section][row]
+        //checking horizontally
+        let rightOffset:Int = {
+            var offsetPosition = row
+            while offsetPosition < 7 && markedCells[section][offsetPosition+1] == mark {
+                offsetPosition += 1
+            }
+            return offsetPosition - row
+        }()
+        let leftOffset:Int = {
+            var offsetPosition = row
+            while offsetPosition > 0 && markedCells[section][offsetPosition-1] == mark {
+                offsetPosition -= 1
+            }
+            return row - offsetPosition
+        }()
+        
+        if leftOffset+rightOffset >= 4 {
+            getWinner()
+        }
+        //checking vertically
+        let topOffset:Int = {
+            var offsetPosition = section
+            while offsetPosition > 0 && markedCells[offsetPosition-1][row] == mark {
+                offsetPosition -= 1
+            }
+            return section - offsetPosition
+        }()
+        
+        let bottomOffset:Int = {
+            var offsetPosition = section
+            while offsetPosition < 7 && markedCells[offsetPosition+1][row] == mark {
+                offsetPosition += 1
+            }
+            return offsetPosition - section
+        }()
+        if topOffset + bottomOffset >= 4 {
+            getWinner()
+        }
+        //checking diagonally
+        let rightBottomOffset:Int = {
+            var offset = 0
+            var offsetSectionPosition = section
+            var offsetRowPosition = row
+            while offsetRowPosition < 7 && offsetSectionPosition < 7 && markedCells[offsetSectionPosition+1][offsetRowPosition+1] == mark {
+                offset += 1
+                offsetSectionPosition += 1
+                offsetRowPosition += 1
+            }
+            return offset
+        }()
+        let leftBottomOffset:Int = {
+            var offset = 0
+            var offsetSectionPosition = section
+            var offsetRowPosition = row
+            while offsetRowPosition > 0 && offsetSectionPosition < 7 && markedCells[offsetSectionPosition+1][offsetRowPosition-1] == mark {
+                offset += 1
+                offsetSectionPosition += 1
+                offsetRowPosition -= 1
+            }
+            return offset
+        }()
+        let leftTopOffset:Int = {
+            var offset = 0
+            var offsetSectionPosition = section
+            var offsetRowPosition = row
+            while offsetRowPosition > 0 && offsetSectionPosition > 0 && markedCells[offsetSectionPosition-1][offsetRowPosition-1] == mark {
+                offset += 1
+                offsetSectionPosition -= 1
+                offsetRowPosition -= 1
+            }
+            return offset
+        }()
+        let rightTopOffset:Int = {
+            var offset = 0
+            var offsetSectionPosition = section
+            var offsetRowPosition = row
+            while offsetRowPosition < 7 && offsetSectionPosition > 0 && markedCells[offsetSectionPosition-1][offsetRowPosition+1] == mark {
+                offset += 1
+                offsetSectionPosition -= 1
+                offsetRowPosition += 1
+            }
+            return offset
+        }()
+        
+        if leftTopOffset + rightBottomOffset >= 4 {
+            getWinner()
+        }
+        
+        if leftBottomOffset + rightTopOffset >= 4 {
+            getWinner()
+        }
+        changeToNextTurn()
+    }
+    mutating func reset() {
+        gameStatus = .xTurn
+        for i in 0..<8 {
+            for j in 0..<8 {
+                markedCells[i][j] = .unmarked
+            }
+        }
+        matchesOWon = 0
+        matchesXWon = 0
+        matchNumber = 1
+        numMarks = 0
     }
 }
 
