@@ -46,6 +46,9 @@ class MainViewController: UIViewController, UICollectionViewDataSource, UICollec
         collectionView.reloadData()
     }
     
+    @objc func changeToNextGame() {
+        gameInfo.changeToNextGame(updating: collectionView)
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,6 +59,9 @@ class MainViewController: UIViewController, UICollectionViewDataSource, UICollec
         restartButton.changeCornerRadius(to: 5)
         restartButtonHeightContraint.constant = 1.5 * cellWidth
         restartButton.layoutIfNeeded()
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(changeToNextGame))
+        statusLabel.addGestureRecognizer(tapGesture)
+        statusLabel.isUserInteractionEnabled = true
     }
     
     func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -92,6 +98,7 @@ class MainViewController: UIViewController, UICollectionViewDataSource, UICollec
             gameInfo.updateGameInfo(afterMarkingAt: indexPath)
         }
     }
+
     
     struct Constants {
         static let cellOffset:CGFloat = 5
@@ -139,15 +146,11 @@ struct GameInfo {
     private mutating func getWinner() {
         if gameStatus == .oTurn {
             gameStatus = .oWon
-            matchNumber = matchNumber + 1
             matchesOWon = matchesOWon + 1
-            matchNumber = matchNumber + 1
         }
         else if gameStatus == .xTurn {
             gameStatus = .xWon
-            matchNumber = matchNumber + 1
             matchesXWon = matchesXWon + 1
-            matchNumber = matchNumber + 1
         }
     }
     
@@ -264,6 +267,18 @@ struct GameInfo {
         matchesXWon = 0
         matchNumber = 1
         numMarks = 0
+    }
+    mutating func changeToNextGame(updating collectionView:UICollectionView) {
+        if gameStatus == .draw || gameStatus == .oWon || gameStatus == .xWon {
+            gameStatus = .xTurn
+            for i in 0..<8 {
+                for j in 0..<8 {
+                    markedCells[i][j] = .unmarked
+                }
+            }
+            matchNumber = matchNumber + 1
+            collectionView.reloadData()
+        }
     }
 }
 
