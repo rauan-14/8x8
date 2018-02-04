@@ -139,9 +139,15 @@ struct GameInfo {
     private mutating func getWinner() {
         if gameStatus == .oTurn {
             gameStatus = .oWon
+            matchNumber = matchNumber + 1
+            matchesOWon = matchesOWon + 1
+            matchNumber = matchNumber + 1
         }
         else if gameStatus == .xTurn {
             gameStatus = .xWon
+            matchNumber = matchNumber + 1
+            matchesXWon = matchesXWon + 1
+            matchNumber = matchNumber + 1
         }
     }
     
